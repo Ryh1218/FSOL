@@ -1,0 +1,68 @@
+---------------------------------------------------------
+Dataset creation:
+FSC-147:
+1. paste 'images_384_VarV2' and 'gt_density_map_adaptive_384_VarV2' to FSOL/data/FSC147_384_V2
+2. run gen_gt_density.py
+
+
+ShangHai partA:
+1. paste 'test_data', 'train_data' to FSOL/data/ShanghaiTech/part_A
+2. run gen_gt_density.py
+
+
+ShangHai partB:
+1. paste 'test_data', 'train_data' to FSOLC/data/ShanghaiTech/part_B
+2. run gen_gt_density.py
+
+
+CARPK, code: hsieh_iccv17
+1. paste 'Transmit/CARPK/CARPK_devkit/data/Images' to 'FSOL/data/CARPK_devkit/Images'
+2. run gen_gt_density.py
+
+---------------------------------------------------------
+Train FSOL model by:
+FSC-147:
+cd experiments
+cd FSC147
+sh train.sh 1 0
+
+ShanghaiTech A:
+cd experiments
+cd ShanghaiTech
+cd part_A
+sh train.sh 1 0
+
+ShanghaiTech B:
+cd experiments
+cd ShanghaiTech
+cd part_B
+sh train.sh 1 0
+
+CARPK:
+cd experiments
+cd CARPK
+sh train.sh 1 0
+
+---------------------------------------------------------
+Test FSOL model by:
+FSC-147:
+cd experiments
+cd FSC147
+sh test.sh 1 0
+
+ShanghaiTech A:
+cd experiments
+cd ShanghaiTech
+cd part_A
+sh eval.sh 1 0
+
+ShanghaiTech B:
+cd experiments
+cd ShanghaiTech
+cd part_B
+sh eval.sh 1 0
+
+CARPK:
+cd experiments
+cd CARPK
+sh eval.sh 1 0
