@@ -72,7 +72,7 @@ The structure should be as follows:
 ```
 
 ## Training
-You can trian FSOL model on different datasets. Under the root directory, you can first enter the experiment folder by:
+You can train FSOL model on different datasets. Under the root directory, you can first enter the experiment folder by:
 
 **FSC-147:**
 `cd experiments/FSC147`
