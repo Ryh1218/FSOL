@@ -9,8 +9,10 @@ pip install -r requirements.txt
 ```
 
 ### Prepare Datasets
-#### FSC-147
-1. Paste 'images_384_VarV2' and 'gt_density_map_adaptive_384_VarV2' to data/FSC147_384_V2
+#### FSC-147 
+Official website: https://github.com/cvlab-stonybrook/LearningToCountEverything
+
+1. Copy 'images_384_VarV2' and 'gt_density_map_adaptive_384_VarV2' to data/FSC147_384_V2
 2. Run gen_gt_density.py
 The structure should be as follows:
 ```
@@ -25,12 +27,14 @@ The structure should be as follows:
 ```
 
 #### ShanghaiTech
+Official website: https://github.com/desenzhou/ShanghaiTechDataset
+
 For ShanghaiTech partA:
-1. Paste 'test_data', 'train_data' to data/ShanghaiTech/part_A
+1. Copy 'test_data', 'train_data' to data/ShanghaiTech/part_A
 2. Run gen_gt_density.py
 
 For ShanghaiTech partB:
-1. Paste 'test_data', 'train_data' to data/ShanghaiTech/part_B
+1. Copy 'test_data', 'train_data' to data/ShanghaiTech/part_B
 2. Run gen_gt_density.py
 The structure should be as follows:
 ```
@@ -53,7 +57,8 @@ The structure should be as follows:
 ```
 
 #### CARPK
-1. Paste 'CARPK/CARPK_devkit/data/Images' todata/CARPK_devkit/
+Official website: https://lafi.github.io/LPN/
+1. Copy 'CARPK/CARPK_devkit/data/Images' to data/CARPK_devkit/
 2. Run gen_gt_density.py
 The structure should be as follows:
 ```
@@ -96,3 +101,6 @@ All of the following results are experimented on one NVIDIA RTX 3090 with one su
 | Shanghai A | 52.4 | 58.4 | 47.6 | 69.6 | 77.6 | 63.1 |
 | Shanghai B | 67.2 | 75.5 | 60.5 | 78.0 | 88.4 | 70.9 |
 | CARPK | 81.84 | 80.9 | 82.8 | 93.46 | 92.38 | 94.56 |
+
+## Thanks
+This code is based on SAFECount (https://github.com/zhiyuanyou/SAFECount) and FIDTM (https://github.com/dk-liang/FIDTM). Many thanks for your code implementation.
