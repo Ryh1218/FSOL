@@ -1,6 +1,6 @@
 # Few-shot Object Localization
 
-![image](https://github.com/Ryh1218/FSOL/assets/FSOL.png)
+![image](https://github.com/Ryh1218/FSOL/blob/main/assets/FSOL.png)
 
 ## Start
 ### Dependencies
