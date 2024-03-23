@@ -89,7 +89,7 @@ You can train FSOL model on different datasets. Under the root directory, you ca
 
 Then, you can run `sh train.sh #GPU_NUM #GPU_ID` to train the FSOL model. For example, training with one GPU and ID 0 should be `sh train.sh 1 0`. For FSC-147 dataset, you can run `sh eval.sh #GPU_NUM #GPU_ID` for evaluation and `sh test.sh #GPU_NUM #GPU_ID` for testing. For other datasets, you can run `sh eval.sh #GPU_NUM #GPU_ID` for testing.
 
-We suggest you to train the model on single GPU.
+We suggest you train the model on single GPU.
 
 
 ## Results
