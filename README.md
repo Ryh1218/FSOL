@@ -1,4 +1,9 @@
 # Few-shot Object Localization
+Official PyTorch implementation of [Few-shot Object Localization](https://arxiv.org/abs/2403.12466)
+
+[![arXiv](https://img.shields.io/badge/arXiv-2311.16203-b31b1b.svg)](https://arxiv.org/abs/2403.12466)
+
+The architecture of the model is as follows:
 
 ![image](https://github.com/Ryh1218/FSOL/blob/main/assets/FSOL.png)
 
