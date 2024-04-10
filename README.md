@@ -111,3 +111,13 @@ All of the following results are experimented on one NVIDIA RTX 3090 with one su
 This code is based on SAFECount (https://github.com/zhiyuanyou/SAFECount) and FIDTM (https://github.com/dk-liang/FIDTM). Many thanks for your code implementation.
 
 ## Reference
+'''
+@article{FSOL,
+  title={Few-shot Object Localization},
+  author={Yunhan Ren and Bo Li and Chengyang Zhang and Yong Zhang and Baocai Yin},
+  journal={ArXiv},
+  year={2024},
+  volume={abs/2403.12466},
+  url={https://api.semanticscholar.org/CorpusID:268531824}
+}
+'''
