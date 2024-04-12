@@ -3,7 +3,7 @@ Official PyTorch implementation of [Few-shot Object Localization](https://arxiv.
 
 [![arXiv](https://img.shields.io/badge/arXiv-2403.12466-b31b1b.svg)](https://arxiv.org/abs/2403.12466)
 
-The architecture of the model is as follows:
+Existing object localization methods are tailored to locate a specific class of objects, relying on abundant labeled data for model optimization. However, in numerous real-world scenarios, acquiring large labeled data can be arduous, significantly constraining the broader application of localization models. To bridge this research gap, this paper proposes the novel task of Few-Shot Object Localization (FSOL), which seeks to achieve precise localization with limited samples available. This task achieves generalized object localization by leveraging a small number of labeled support samples to query the positional information of objects within corresponding images. To advance this research field, we propose an innovative high-performance baseline model. Our model integrates a dual-path feature augmentation module to enhance shape association and gradient differences between supports and query images, alongside a self query module designed to explore the association between feature maps and query images. Experimental results demonstrate a significant performance improvement of our approach in the FSOL task, establishing an efficient benchmark for further research. The architecture of the model is as follows:
 
 ![image](https://github.com/Ryh1218/FSOL/blob/main/assets/FSOL.png)
 
