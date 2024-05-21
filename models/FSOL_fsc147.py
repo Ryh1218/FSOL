@@ -108,7 +108,8 @@ class FSModelBlock(nn.Module):
             attns_lst.append(attn)
 
         attns = torch.stack(attns_lst, dim=1).squeeze(0)
-        attns = self.activation(self.out_conv(attn))
+        attns = attns.mean(dim=0, keepdim=True)
+        attns = self.activation(self.out_conv(attns))
         attns = self.sq(query_ori, attns)
         return attns
 
