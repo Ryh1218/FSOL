@@ -118,6 +118,8 @@ class Visualizer(ABC):
         return output
 
     def vis_batch(self, input, kpoint, filename):
+        if os.path.exists(self.vis_dir) is False:
+            os.mkdir(self.vis_dir)
         filenames = input["filename"]
         heights, widths = input["height"], input["width"]
         densities = input["density"]

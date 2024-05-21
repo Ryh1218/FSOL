@@ -78,30 +78,37 @@ class FSModelBlock(nn.Module):
 
     def forward(self, query_ori, keys):
         keys = crop_roi_feat(query_ori, keys, self.out_stride)
-        key = keys[0]
 
-        h_p, w_p = self.pool.size
-        pad = (w_p // 2, w_p // 2, h_p // 2, h_p // 2)
-        _, _, h_q, w_q = query_ori.size()
+        attns_lst = []
 
-        query_dc = self.activation(self.dc(query_ori))
-        query_cdc = self.activation(self.cdc(query_ori))
+        for i in keys:
+            key = i
 
-        key_ori = F.adaptive_max_pool2d(key, self.pool.size, return_indices=False)
-        key_dc = self.activation(self.dc(key_ori))
-        key_cdc = self.activation(self.cdc(key_ori))
+            h_p, w_p = self.pool.size
+            pad = (w_p // 2, w_p // 2, h_p // 2, h_p // 2)
+            _, _, h_q, w_q = query_ori.size()
 
-        query_lst = [
-            self.process_sequence(query, h_q, w_q) for query in [query_cdc, query_dc]
-        ]
-        key_lst = [self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]]
+            query_dc = self.activation(self.dc(query_ori))
+            query_cdc = self.activation(self.cdc(query_ori))
 
-        query = torch.stack(query_lst, dim=1).squeeze(2)
-        key = torch.stack(key_lst, dim=1).squeeze(2)
+            key_ori = F.adaptive_max_pool2d(key, self.pool.size, return_indices=False)
+            key_dc = self.activation(self.dc(key_ori))
+            key_cdc = self.activation(self.cdc(key_ori))
 
-        attn = self.activation(F.conv3d(F.pad(query, pad), key)).squeeze(0)
+            query_lst = [
+                self.process_sequence(query, h_q, w_q) for query in [query_cdc, query_dc]
+            ]
+            key_lst = [self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]]
 
-        attns = self.activation(self.out_conv(attn))  # [1, 256, 128, 128]
+            query = torch.stack(query_lst, dim=1).squeeze(2)
+            key = torch.stack(key_lst, dim=1).squeeze(2)
+
+            attn = self.activation(F.conv3d(F.pad(query, pad), key)).squeeze(0)
+
+            attns_lst.append(attn)
+
+        attns = torch.stack(attns_lst, dim=1).squeeze(0)
+        attns = self.activation(self.out_conv(attn))
         attns = self.sq(query_ori, attns)
         return attns
 

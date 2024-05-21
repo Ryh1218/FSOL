@@ -96,12 +96,9 @@ class FSModelBlock(nn.Module):
             key_cdc = self.activation(self.cdc(key_ori))
 
             query_lst = [
-                self.process_sequence(query, h_q, w_q)
-                for query in [query_cdc, query_dc]
+                self.process_sequence(query, h_q, w_q) for query in [query_cdc, query_dc]
             ]
-            key_lst = [
-                self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]
-            ]
+            key_lst = [self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]]
 
             query = torch.stack(query_lst, dim=1).squeeze(2)
             key = torch.stack(key_lst, dim=1).squeeze(2)
@@ -110,8 +107,8 @@ class FSModelBlock(nn.Module):
 
             attns_lst.append(attn)
 
-        attns = torch.stack(attns_lst, dim=1).squeeze(0)  # [5, 1, 128, 128]
-        attns = self.activation(self.out_conv(attn))  # [5, 256, 128, 128]
+        attns = torch.stack(attns_lst, dim=1).squeeze(0)
+        attns = self.activation(self.out_conv(attn))
         attns = self.sq(query_ori, attns)
         return attns
 
