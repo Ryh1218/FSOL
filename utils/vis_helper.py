@@ -106,7 +106,6 @@ class Visualizer(ABC):
             output = (output - output.min()) / (output.max() - output.min())
         if self.with_image:
             img_path = os.path.join(self.img_dir, filename)
-            print(f'SA: {img_path}')
             image = cv2.imread(img_path)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             output = self.apply_scoremap(image, output)
@@ -132,7 +131,6 @@ class Visualizer(ABC):
             filepath = os.path.join(self.vis_dir, resname)
         
         img_path = os.path.join(self.img_dir, filename)
-        print(f'OUR: {img_path}')
         ori_img, box_img = self.generate_bounding_boxes(kpoint, filename, img_path)
         show_fidt = self.show_map(outputs.data.cpu().numpy())
         gt_show = self.show_map(densities.data.cpu().numpy())
