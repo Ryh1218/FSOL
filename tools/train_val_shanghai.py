@@ -310,6 +310,11 @@ def eval(
             )
         )
         logger.info(
+            "Counting performance | MAE: {} | RMSE: {}".format(
+                mae, mse
+            )
+        )
+        logger.info(
             "Finish Val | f1m_s: {}, f1m_l: {} | Best f1m_s: {}, Best f1m_l: {} | Val MAE: {}, Val MSE: {} | Best Val MAE: {}, Best Val MSE: {}".format(
                 f1m_s, f1m_l, best_f1m_s, best_f1m_l, mae, mse, best_mae, best_mse
             )
