@@ -96,6 +96,19 @@ Then, you can run `sh train.sh #GPU_NUM #GPU_ID` to train the FSOL model. For ex
 
 We suggest you train the model on single GPU.
 
+## Model Weight
+You can access the following links to get pretrained weight of one-shot FSOL model. Google Drive: [here](https://drive.google.com/file/d/1oQicG8qlP2oEsOQ5oNUFcIz-RzZKNKpb/view?usp=sharing); Baidu Netdisk: [here](https://pan.baidu.com/s/1tDJSI94L4BnuRfRQm3S4ig?pwd=2uvc).
+### Load model weight
+You can load pre-trained weight of FSOL model through modifying the config file for each experiment. For example, for FSC147 experiment, move the model weight to experiments/FSC147/checkpoints, then
+access to experiments/FSC147/config.yaml and modify as follows:
+```
+saver:
+  ifload: True
+  load_weight: FSOL_Final.tar
+  save_dir: checkpoints/
+  log_dir: log/
+```
+
 
 ## Results
 All of the following results are experimented on one NVIDIA RTX 3090 with one support sample provided.
@@ -108,7 +121,7 @@ All of the following results are experimented on one NVIDIA RTX 3090 with one su
 | CARPK | 81.84 | 80.9 | 82.8 | 93.46 | 92.38 | 94.56 |
 
 ## Thanks
-This code is based on SAFECount (https://github.com/zhiyuanyou/SAFECount) and FIDTM (https://github.com/dk-liang/FIDTM). Many thanks for your code implementation.
+This code is based on [SAFECount](https://github.com/zhiyuanyou/SAFECount) and [FIDTM](https://github.com/dk-liang/FIDTM). Many thanks for your code implementation.
 
 ## Reference
 ```
