@@ -1,16 +1,19 @@
 # Few-shot Object Localization
-Official PyTorch implementation of [Few-shot Object Localization](https://arxiv.org/abs/2403.12466)
+Official PyTorch implementation of Few-shot Object Localization.
 
-[![arXiv](https://img.shields.io/badge/arXiv-2403.12466-b31b1b.svg)](https://arxiv.org/abs/2403.12466)
+<!-- [![arXiv](https://img.shields.io/badge/arXiv-2403.12466-b31b1b.svg)](https://arxiv.org/abs/2403.12466) -->
 
-Existing object localization methods are tailored to locate a specific class of objects, relying on abundant labeled data for model optimization. However, in numerous real-world scenarios, acquiring large labeled data can be arduous, significantly constraining the broader application of localization models. To bridge this research gap, this paper proposes the novel task of Few-Shot Object Localization (FSOL), which seeks to achieve precise localization with limited samples available. This task achieves generalized object localization by leveraging a small number of labeled support samples to query the positional information of objects within corresponding images. To advance this research field, we propose an innovative high-performance baseline model. Our model integrates a dual-path feature augmentation module to enhance shape association and gradient differences between supports and query images, alongside a self query module designed to explore the association between feature maps and query images. Experimental results demonstrate a significant performance improvement of our approach in the FSOL task, establishing an efficient benchmark for further research. The architecture of the model is as follows:
+Existing object localization methods are typically trained under strong supervision to detect specific object classes, relying heavily on large amounts of labeled data. However, obtaining sufficient annotations is often impractical in real-world scenarios, which greatly limits the applicability of these models. To address this challenge, we introduce a novel task, Few-Shot Object Localization (FSOL), which aims to achieve accurate localization with only a few labeled samples. For practical relevance, we further benchmark two FSOL subtasks: class-agnostic FSOL and class-specific FSOL, which localize intra-class objects guided by either image-level prompts or global pre-defined prompts. To tackle these tasks, we propose an efficient and high-performance baseline model that integrates a dual-path feature augmentation module, enhancing shape association and gradient difference recognition between the annotated prompt and the query image, together with a self-query module that further refines the similarity map using the original query features. Extensive experiments demonstrate that our approach significantly outperforms existing methods on FSOL tasks, providing a strong benchmark for future research. The architecture of the model is as follows:
 
 ![image](https://github.com/Ryh1218/FSOL/blob/main/assets/FSOL.png)
 
 ## Start
 ### Dependencies
 ```
-pip install -r requirements.txt
+conda create -n fsol python=3.8
+conda activate fsol
+pip3 install torch==1.8.2 torchvision==0.9.2 torchaudio==0.8.2 --extra-index-url https://download.pytorch.org/whl/lts/1.8/cu111
+pip install easydict==1.9 numpy==1.21.2 opencv_python==4.5.5.64 pillow==9.4.0 pyyaml==6.0 scipy==1.7.2 tqdm==4.64.0
 ```
 
 ### Prepare Datasets
@@ -35,11 +38,11 @@ The structure should be as follows:
 Official website: https://github.com/desenzhou/ShanghaiTechDataset
 
 For ShanghaiTech partA:
-1. Copy 'test_data', 'train_data' to data/ShanghaiTech/part_A
+1. Copy 'test_data', 'train_data' to 'data/ShanghaiTech/part_A'
 2. Run gen_gt_density.py
 
 For ShanghaiTech partB:
-1. Copy 'test_data', 'train_data' to data/ShanghaiTech/part_B
+1. Copy 'test_data', 'train_data' to 'data/ShanghaiTech/part_B'
 2. Run gen_gt_density.py
 The structure should be as follows:
 ```
@@ -63,7 +66,7 @@ The structure should be as follows:
 
 #### CARPK
 Official website: https://lafi.github.io/LPN/
-1. Copy 'CARPK/CARPK_devkit/data/Images' to data/CARPK_devkit/
+1. Copy 'CARPK/CARPK_devkit/data/Images' to 'data/CARPK_devkit/'
 2. Run gen_gt_density.py
 The structure should be as follows:
 ```
@@ -76,12 +79,41 @@ The structure should be as follows:
         |-- exemplar.json
 ```
 
+#### PUCPR+
+Official website: https://lafi.github.io/LPN/
+1. Copy 'datasets/PUCPR+_devkit/data/Images' to 'data/PUCPR+_devkit'
+2. Run gen_gt_density.py
+The structure should be as follows:
+```
+|-- data
+    |-- PUCPR+_devkit
+        |-- Images
+        |-- gen_gt_density.py
+        |-- train.json
+        |-- test.json
+        |-- exemplar.json
+```
+
+#### UCSD
+1. Copy 'ucsdpeds/vidf' to 'data/UCSD/'
+2. Run gen_gt_density.py
+The structure should be as follows:
+```
+|-- data
+    |-- UCSD
+        |-- vidf
+        |-- gen_gt_density.py
+        |-- train.json
+        |-- test.json
+        |-- exemplar.json
+```
+
+
 ## Training
 You can train FSOL model on different datasets. Under the root directory, you can first enter the experiment folder by:
 
 **FSC-147:**
 `cd experiments/FSC147`
-
 
 **ShanghaiTech partA:**
 `cd experiments/ShanghaiTech/part_A`
@@ -92,38 +124,33 @@ You can train FSOL model on different datasets. Under the root directory, you ca
 **CARPK:** 
 `cd experiments/CARPK`
 
-Then, you can run `sh train.sh #GPU_NUM #GPU_ID` to train the FSOL model. For example, training with one GPU and ID 0 should be `sh train.sh 1 0`. For FSC-147 dataset, you can run `sh eval.sh #GPU_NUM #GPU_ID` for evaluation and `sh test.sh #GPU_NUM #GPU_ID` for testing. For other datasets, you can run `sh eval.sh #GPU_NUM #GPU_ID` for testing.
+**PUCPR+:** 
+`cd experiments/PUCPR+`
 
-We suggest you train the model on single GPU.
+**UCSD:** 
+`cd experiments/UCSD`
 
-## Model Weight
-You can access the following links to get pretrained weight of one-shot FSOL model. Google Drive: [here](https://drive.google.com/file/d/1oQicG8qlP2oEsOQ5oNUFcIz-RzZKNKpb/view?usp=sharing); Baidu Netdisk: [here](https://pan.baidu.com/s/1tDJSI94L4BnuRfRQm3S4ig?pwd=2uvc).
+Then, you can run `sh train.sh` to train the FSOL model and run `sh eval.sh` or `sh test.sh` to evaluate FSOL model. Inside each .sh file, you can adjust the `CUDA_VISIBLE_DEVICES`.
+
+All the experiments are executed on single RTX 3090 GPU.
+
+<!-- ## Model Weight
+You can access the following links to get pretrained weight of one-shot FSOL model. Google Drive: [here](https://drive.google.com/file/d/1oQicG8qlP2oEsOQ5oNUFcIz-RzZKNKpb/view?usp=sharing); Baidu Netdisk: [here](https://pan.baidu.com/s/1tDJSI94L4BnuRfRQm3S4ig?pwd=2uvc). -->
+
 ### Load model weight
-You can load pre-trained weight of FSOL model through modifying the config file for each experiment. For example, for FSC147 experiment, move the model weight to experiments/FSC147/checkpoints, then
-access to experiments/FSC147/config.yaml and modify as follows:
-```
-saver:
+You can load pre-trained weight of FSOL model through modifying the config file for each experiment. For example, for FSC147 experiment, move the model weight to experiments/FSC147/checkpoints, then access to experiments/FSC147/config.yaml and modify as follows:
+
+```saver:
   ifload: True
   load_weight: FSOL_Final.tar
   save_dir: checkpoints/
   log_dir: log/
 ```
 
-
-## Results
-All of the following results are experimented on one NVIDIA RTX 3090 with one support sample provided.
-
-| **Dataset**       | **F1($\sigma$=5)** | **AP($\sigma$=5)** | **AR($\sigma$=5)** | **F1($\sigma$=10)** | **AP($\sigma$=10)** | **AR($\sigma$=10)** |
-| ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| FSC-147 | 53.4 | 55.5 | 51.4 | 70.0 |	72.7 | 67.4 |
-| Shanghai A | 52.4 | 58.4 | 47.6 | 69.6 | 77.6 | 63.1 |
-| Shanghai B | 67.2 | 75.5 | 60.5 | 78.0 | 88.4 | 70.9 |
-| CARPK | 81.84 | 80.9 | 82.8 | 93.46 | 92.38 | 94.56 |
-
 ## Thanks
 This code is based on [SAFECount](https://github.com/zhiyuanyou/SAFECount) and [FIDTM](https://github.com/dk-liang/FIDTM). Many thanks for your code implementation.
 
-## Reference
+<!-- ## Reference
 ```
 @article{FSOL,
   title={Few-shot Object Localization},
@@ -133,4 +160,4 @@ This code is based on [SAFECount](https://github.com/zhiyuanyou/SAFECount) and [
   volume={abs/2403.12466},
   url={https://api.semanticscholar.org/CorpusID:268531824}
 }
-```
+``` -->

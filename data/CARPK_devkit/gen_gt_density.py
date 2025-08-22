@@ -126,6 +126,8 @@ if __name__ == "__main__":
     print(json_paths)
     for json_path in tqdm(json_paths):
         pool_name = json_path.split("/")[-1].split(".")[0]
+        if pool_name =='test':
+            pool_name = 'val'
         f = open(os.path.join(root, "sf_{}_gt.txt".format(pool_name)), "w+")
         json_file = open(json_path, "r", encoding="utf-8")
         for line in json_file.readlines():
@@ -134,8 +136,6 @@ if __name__ == "__main__":
             file_name = dic["filename"].replace(".png", "")
 
             img_path = os.path.join(root, "Images", file_name + ".png")
-
-            file_name = file_name.split("_")[1] + "_" + file_name.split("_")[2]
 
             img = Image.open(img_path)
             width = img.size[0]

@@ -1,5 +1,5 @@
 port: 22222
-random_seed: 131
+random_seed: 314159
 
 files:
   gt_files_folder: ../../../data/ShanghaiTech/part_B
@@ -10,9 +10,9 @@ dataset:
   exemplar:
     img_dir: &img_train_dir ../../../data/ShanghaiTech/part_B/train_data/images/
     meta_file: ../../../data/ShanghaiTech/part_B/exemplar.json
-    norm: True
-    num_exemplar: 1
-  input_size: &input_size [512, 512] # [h, w]
+    norm: true
+    num_exemplar: 5
+  input_size: [512, 512]             # [h, w]
   pixel_mean: [0.485, 0.456, 0.406]
   pixel_std: [0.229, 0.224, 0.225]
   batch_size: 1
@@ -24,10 +24,10 @@ dataset:
     meta_file: ../../../data/ShanghaiTech/part_B/train.json
     hflip:
       prob: 0.5
-    vflip: False
+    vflip: false
     rotate:
       degrees: 5
-    colorjitter: 
+    colorjitter:
       brightness: 0.1
       contrast: 0.1
       saturation: 0.1
@@ -36,7 +36,7 @@ dataset:
     gamma:
       range: [0.75, 1.5]
       prob: 0.5
-    gray: False
+    gray: false
   val:
     img_dir: &img_test_dir ../../../data/ShanghaiTech/part_B/test_data/images/
     density_dir: ../../../data/ShanghaiTech/part_B/test_data/gt_density_map/
@@ -50,7 +50,7 @@ criterion:
       weight: 250
 
 trainer:
-  epochs: 2000
+  epochs: 400
   lr_scale_backbone: 0 # 0: frozen, 0.1: 0.1 * lr, 1: lr
   optimizer:
     type: Adam
@@ -63,21 +63,21 @@ trainer:
       gamma: 0.25
 
 saver:
-  ifload: False
-  load_weight: ckpt.pth.tar
+  ifload: false
+  load_weight: FSOL.pth
   save_dir: checkpoints/
   log_dir: log/
 
 visualizer:
-  ifvis: False
+  ifvis: false
   vis_dir: vis/
   img_dir: *img_test_dir
   activation: sigmoid # [null, sigmoid]
-  normalization: True
-  with_image: True
+  normalization: true
+  with_image: true
 
 net:
-  builder: models.FSOL_shanghai.build_network
+  builder: models.FSOL.build_network
   kwargs:
     backbone:
       type: resnet50

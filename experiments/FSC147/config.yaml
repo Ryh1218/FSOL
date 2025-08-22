@@ -59,7 +59,7 @@ trainer:
 
 saver:
   ifload: False
-  load_weight: ckpt.pth.tar
+  load_weight: FSOL.pth
   save_dir: checkpoints/
   log_dir: log/
 
@@ -72,7 +72,7 @@ visualizer:
   with_image: True
 
 net:
-  builder: models.FSOL_fsc147.build_network
+  builder: models.FSOL.build_network
   kwargs:
     backbone:
       type: resnet50

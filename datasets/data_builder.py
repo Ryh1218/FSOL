@@ -1,10 +1,8 @@
-import torch.distributed as dist
-
 from datasets.custom_dataset import build_custom_dataloader
 from datasets.custom_exemplar_dataset import build_custom_exemplar_dataloader
 
 
-def build(cfg, dataset_type, distributed):
+def build(cfg, dataset_type):
     if dataset_type == "train":
         cfg.update(cfg.get("train", {}))
         training = True
@@ -19,31 +17,30 @@ def build(cfg, dataset_type, distributed):
 
     dataset = cfg["type"]
     if dataset == "custom":
-        data_loader = build_custom_dataloader(cfg, training, distributed)
+        data_loader = build_custom_dataloader(cfg, training)
     elif dataset == "custom_exemplar":
-        data_loader = build_custom_exemplar_dataloader(cfg, training, distributed)
+        data_loader = build_custom_exemplar_dataloader(cfg, training)
     else:
         raise NotImplementedError(f"{dataset} is not supported")
 
     return data_loader
 
 
-def build_dataloader(cfg_dataset, distributed=True):
-    rank = dist.get_rank()
+def build_dataloader(cfg_dataset):
 
     train_loader = None
     if cfg_dataset.get("train", None):
-        train_loader = build(cfg_dataset, dataset_type="train", distributed=distributed)
+        train_loader = build(cfg_dataset, dataset_type="train")
 
     val_loader = None
     if cfg_dataset.get("val", None):
-        val_loader = build(cfg_dataset, dataset_type="val", distributed=distributed)
+        val_loader = build(cfg_dataset, dataset_type="val")
 
     test_loader = None
     if cfg_dataset.get("test", None):
-        test_loader = build(cfg_dataset, dataset_type="test", distributed=distributed)
+        test_loader = build(cfg_dataset, dataset_type="test")
 
-    if rank == 0:
-        print("build dataset done")
+
+    print("build dataset done")
 
     return train_loader, val_loader, test_loader

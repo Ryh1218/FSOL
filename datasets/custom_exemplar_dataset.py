@@ -6,18 +6,16 @@ import os
 import cv2
 import numpy as np
 import torch
-import torch.distributed as dist
+
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler
 
 from datasets.base_dataset import BaseDataset, BaseTransform, ExemplarTransform
 from datasets.transforms import RandomColorJitter
 
 
-def build_custom_exemplar_dataloader(cfg, training, distributed=True):
-    rank = dist.get_rank()
+def build_custom_exemplar_dataloader(cfg, training):
 
     normalize_fn = transforms.Normalize(mean=cfg["pixel_mean"], std=cfg["pixel_std"])
 
@@ -40,8 +38,8 @@ def build_custom_exemplar_dataloader(cfg, training, distributed=True):
     else:
         colorjitter_fn = None
 
-    if rank == 0:
-        print("building CustomDataset from: {}".format(cfg["meta_file"]))
+
+    print("building CustomDataset from: {}".format(cfg["meta_file"]))
 
     dataset = CustomDataset(
         cfg["img_dir"],
@@ -54,10 +52,8 @@ def build_custom_exemplar_dataloader(cfg, training, distributed=True):
         colorjitter_fn=colorjitter_fn,
     )
 
-    if distributed:
-        sampler = DistributedSampler(dataset)
-    else:
-        sampler = RandomSampler(dataset)
+
+    sampler = RandomSampler(dataset)
 
     data_loader = DataLoader(
         dataset,

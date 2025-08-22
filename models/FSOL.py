@@ -41,7 +41,10 @@ class FSOL(nn.Module):
 
     def forward(self, input):
         image = input["image"]  # [1, 3, 512, 512]
-        boxes = input["exemplar_boxes"].squeeze(0)
+        if "boxes" in input:
+            boxes = input["boxes"].squeeze(0)
+        else:
+            boxes = input["exemplar_boxes"].squeeze(0)
         feat = self.in_conv(self.backbone(image))  # [1, 256, 128, 128]
 
         output = self.fsmodel(query_ori=feat, keys=boxes)
@@ -96,9 +99,12 @@ class FSModelBlock(nn.Module):
             key_cdc = self.activation(self.cdc(key_ori))
 
             query_lst = [
-                self.process_sequence(query, h_q, w_q) for query in [query_cdc, query_dc]
+                self.process_sequence(query, h_q, w_q)
+                for query in [query_cdc, query_dc]
             ]
-            key_lst = [self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]]
+            key_lst = [
+                self.process_sequence(key, h_p, w_p) for key in [key_cdc, key_dc]
+            ]
 
             query = torch.stack(query_lst, dim=1).squeeze(2)
             key = torch.stack(key_lst, dim=1).squeeze(2)

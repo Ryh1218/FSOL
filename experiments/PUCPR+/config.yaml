@@ -1,18 +1,18 @@
 port: 22222
-random_seed: 131
+random_seed: 1234
 
 files:
-  gt_files_folder: ../../data/CARPK_devkit
+  gt_files_folder: ../../data/PUCPR+_devkit
 
 
 dataset:
   type: custom_exemplar
-  img_dir: &img_dir ../../data/CARPK_devkit/Images/
-  density_dir: ../../data/CARPK_devkit/gt_density_map/
+  img_dir: &img_dir ../../data/PUCPR+_devkit/Images/
+  density_dir: ../../data/PUCPR+_devkit/gt_density_map/
   exemplar:
     img_dir: *img_dir
-    meta_file: ../../data/CARPK_devkit/exemplar.json
-    norm: True
+    meta_file: ../../data/PUCPR+_devkit/exemplar.json
+    norm: true
     num_exemplar: 5
   input_size: [512, 512] # [h, w]
   pixel_mean: [0.485, 0.456, 0.406]
@@ -21,26 +21,23 @@ dataset:
   workers: 4
 
   train:
-    meta_file: ../../data/CARPK_devkit/train.json
-    hflip:
-      prob: 0.5
-    vflip:
-      prob: 0.5
-    rotate:
-      degrees: [0,90,180,270]
-    colorjitter: 
+    meta_file: ../../data/PUCPR+_devkit/train.json
+    hflip: false
+    vflip: false
+    rotate: false
+    colorjitter:
       brightness: 0.1
       contrast: 0.1
       saturation: 0.1
       hue: 0.1
       prob: 0.5
     gamma:
-      range: [0.2, 0.5]
+      range: [0.75, 1.5]
       prob: 0.5
   val:
-    meta_file: ../../data/CARPK_devkit/test.json
+    meta_file: ../../data/PUCPR+_devkit/test.json
   test:
-    meta_file: ../../data/CARPK_devkit/test.json
+    meta_file: ../../data/PUCPR+_devkit/test.json
 
 criterion:
   - name: _MSELoss
@@ -63,18 +60,18 @@ trainer:
       gamma: 0.25
 
 saver:
-  ifload: False
+  ifload: false
   load_weight: FSOL.pth
   save_dir: checkpoints/
   log_dir: log/
 
 visualizer:
-  ifvis: False
+  ifvis: false
   vis_dir: vis/
   img_dir: *img_dir
   activation: sigmoid # [null, sigmoid]
-  normalization: True
-  with_image: True
+  normalization: true
+  with_image: true
 
 net:
   builder: models.FSOL.build_network

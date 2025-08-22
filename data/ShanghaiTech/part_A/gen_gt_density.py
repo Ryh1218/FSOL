@@ -140,7 +140,10 @@ if __name__ == "__main__":
 
     for json_path in tqdm(json_paths):
         pool_name = json_path.split("/")[-1].split(".")[0]
-        f = open(os.path.join(root, "sf_{}_gt.txt".format(pool_name)), "w+")
+        if pool_name =='test':
+            f = open(os.path.join(root, "sf_val_gt.txt"), "w+")
+        else:
+            f = open(os.path.join(root, "sf_train_gt.txt"), "w+")
         json_file = open(json_path, "r", encoding="utf-8")
         for line in json_file.readlines():
             dic = json.loads(line)
@@ -161,7 +164,7 @@ if __name__ == "__main__":
                 cor[0] = int(cor[0] / width * 512)
                 cor[1] = int(cor[1] / height * 512)
                 re_coordinates.append([cor[0], cor[1]])
-            f.write("{} {} ".format(int(file_name.split("_")[-1]), len(re_coordinates)))
+            f.write("{} {} ".format(file_name, len(re_coordinates)))
 
             for data in re_coordinates:
                 sigma_s = 4

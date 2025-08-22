@@ -1,6 +1,9 @@
 import math
 import sys
 
+import glob
+import os
+
 import cv2
 import numpy as np
 import torch
@@ -70,6 +73,27 @@ def LMDS_counting(input, w_fname, floc, hthresh):
     return kpoint, floc
 
 
+def LMDS_counting_TEMP(input, w_fname, floc):
+    input_max = torch.max(input).item()
+
+    """ find local maxima"""
+    keep = nn.functional.max_pool2d(input, (3, 3), stride=1, padding=1)
+    keep = (keep == input).float()
+    input = keep * input
+
+
+    input[input < 40.0 / 255.0 * input_max] = 0
+    input[input > 0] = 1
+
+
+    count = int(torch.sum(input).item())
+
+    kpoint = input.data.squeeze(0).squeeze(0).cpu().numpy()
+
+    floc.write("{} {} ".format(w_fname, count))
+    return kpoint, floc
+
+
 def generate_point_map(kpoint, floc, rate=1):
     """obtain the location coordinates"""
     pred_coor = np.nonzero(kpoint)
@@ -97,6 +121,10 @@ def Counting(pred, fname, floc, hthresh):
     generate_point_map(kpoint, floc, rate=1)
     return kpoint
 
+def Counting_TEMP(pred, fname, floc):
+    kpoint, floc = LMDS_counting_TEMP(pred, fname, floc)
+    generate_point_map(kpoint, floc, rate=1)
+    return kpoint
 
 def mysort(line):
     return line.split()[0]
@@ -147,6 +175,79 @@ def hungarian(matrixTF):
             assign[m, i] = True
 
     return ans, assign
+
+
+
+def read_pred_and_gt_TEMP(pred_file, gt_file):
+    def parse_line(line_parts, is_pred=True):
+        """解析单行数据，自动处理第一列格式"""
+        # 尝试将第一列转为整数，如果失败则保持字符串
+        try:
+            idx = int(line_parts[0])
+        except ValueError:
+            idx = line_parts[0]  # 保持字符串格式（如 "image_001"）
+        
+        num = int(line_parts[1])
+        
+        if is_pred:
+            # 预测文件只有坐标信息
+            if num > 0:
+                coords = [int(i) for i in line_parts[2:]]
+                points = np.array(coords).reshape(((len(line_parts) - 2) // 2, 2))
+                return {"num": num, "points": points}
+            else:
+                return {"num": num, "points": []}
+        else:
+            # 真值文件有坐标、sigma和level信息
+            if num > 0:
+                coords = [int(i) for i in line_parts[2:]]
+                points_r = np.array(coords).reshape(((len(line_parts) - 2) // 5, 5))
+                return {
+                    "num": num,
+                    "points": points_r[:, 0:2],
+                    "sigma": points_r[:, 2:4],
+                    "level": points_r[:, 4],
+                }
+            else:
+                return {"num": 0, "points": [], "sigma": [], "level": []}
+    
+    # 读取预测文件
+    pred_data = {}
+    with open(pred_file) as f:
+        for line in f.readlines():
+            line_parts = line.strip().split(" ")
+            
+            # 验证数据格式
+            if (len(line_parts) < 2 or 
+                len(line_parts) % 2 != 0 or 
+                (len(line_parts) - 2) / 2 != int(line_parts[1])):
+                sys.exit(1)
+            
+            try:
+                idx = int(line_parts[0])
+            except ValueError:
+                idx = line_parts[0]
+            
+            pred_data[idx] = parse_line(line_parts, is_pred=True)
+    
+    # 读取真值文件
+    gt_data = {}
+    cell_num = 0
+    with open(gt_file) as f:
+        for line in f.readlines():
+            cell_num += 1
+            line_parts = line.strip().split(" ")
+            
+            try:
+                idx = int(line_parts[0])
+            except ValueError:
+                idx = line_parts[0]
+            
+            gt_data[idx] = parse_line(line_parts, is_pred=False)
+    
+    return pred_data, gt_data
+
+
 
 
 def read_pred_and_gt(pred_file, gt_file):
@@ -385,7 +486,7 @@ def location_main(pred_file, gt_file, carpk):
     ap_s = metrics_s["tp"].sum / (metrics_s["tp"].sum + metrics_s["fp"].sum + 1e-20)
     ar_s = metrics_s["tp"].sum / (metrics_s["tp"].sum + metrics_s["fn"].sum + 1e-20)
     if (ap_s + ar_s) <= 0:
-        return 0, 0, 0, 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0
     f1m_s = 2 * ap_s * ar_s / (ap_s + ar_s)
 
     ap_l = metrics_l["tp"].sum / (metrics_l["tp"].sum + metrics_l["fp"].sum + 1e-20)
@@ -398,9 +499,166 @@ def location_main(pred_file, gt_file, carpk):
     return ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l, mae, mse
 
 
+def location_main_TEMP(pred_file, gt_file):
+    num_classes = 1
+
+    cnt_errors = {
+        "mae": AverageMeter(),
+        "mse": AverageMeter(),
+        "nae": AverageMeter(),
+    }
+    metrics_s = {
+        "tp": AverageMeter(),
+        "fp": AverageMeter(),
+        "fn": AverageMeter(),
+        "tp_c": AverageCategoryMeter(num_classes),
+        "fn_c": AverageCategoryMeter(num_classes),
+    }
+    metrics_l = {
+        "tp": AverageMeter(),
+        "fp": AverageMeter(),
+        "fn": AverageMeter(),
+        "tp_c": AverageCategoryMeter(num_classes),
+        "fn_c": AverageCategoryMeter(num_classes),
+    }
+
+
+    pred_data, gt_data = read_pred_and_gt_TEMP(pred_file, gt_file)
+    for k, v in pred_data.items():
+        # init
+        gt_p, pred_p, fn_gt_index, fp_pred_index = [], [], [], []
+        tp_s, fp_s, fn_s, tp_l, fp_l, fn_l = [0, 0, 0, 0, 0, 0]
+        tp_c_s = np.zeros([num_classes])
+        fn_c_s = np.zeros([num_classes])
+        tp_c_l = np.zeros([num_classes])
+        fn_c_l = np.zeros([num_classes])
+
+        if gt_data[k]["num"] == 0 and pred_data[k]["num"] != 0:
+            pred_p = pred_data[k]["points"]
+            fp_pred_index = np.array(range(pred_p.shape[0]))
+            fp_s = fp_pred_index.shape[0]
+            fp_l = fp_pred_index.shape[0]
+
+        if pred_data[k]["num"] == 0 and gt_data[k]["num"] != 0:
+            gt_p = gt_data[k]["points"]
+            level = gt_data[k]["level"]
+            fn_gt_index = np.array(range(gt_p.shape[0]))
+            fn_s = fn_gt_index.shape[0]
+            fn_l = fn_gt_index.shape[0]
+            for i_class in range(num_classes):
+                fn_c_s[i_class] = (level[fn_gt_index] == i_class).sum()
+                fn_c_l[i_class] = (level[fn_gt_index] == i_class).sum()
+
+        if gt_data[k]["num"] != 0 and pred_data[k]["num"] != 0:
+            pred_p = pred_data[k]["points"]
+            gt_p = gt_data[k]["points"]
+            sigma_s = gt_data[k]["sigma"][:, 0]
+            sigma_l = gt_data[k]["sigma"][:, 1]
+            level = gt_data[k]["level"]
+
+            # dist
+            dist_matrix = ss.distance_matrix(pred_p, gt_p, p=2)
+            match_matrix = np.zeros(dist_matrix.shape, dtype=bool)
+
+            # sigma_s and sigma_l
+            tp_s, fp_s, fn_s, tp_c_s, fn_c_s = compute_metrics(
+                dist_matrix,
+                match_matrix,
+                pred_p.shape[0],
+                gt_p.shape[0],
+                sigma_s,
+                level,
+                num_classes,
+            )
+            tp_l, fp_l, fn_l, tp_c_l, fn_c_l = compute_metrics(
+                dist_matrix,
+                match_matrix,
+                pred_p.shape[0],
+                gt_p.shape[0],
+                sigma_l,
+                level,
+                num_classes,
+            )
+
+        metrics_s["tp"].update(tp_s)
+        metrics_s["fp"].update(fp_s)
+        metrics_s["fn"].update(fn_s)
+        metrics_s["tp_c"].update(tp_c_s)
+        metrics_s["fn_c"].update(fn_c_s)
+        metrics_l["tp"].update(tp_l)
+        metrics_l["fp"].update(fp_l)
+        metrics_l["fn"].update(fn_l)
+        metrics_l["tp_c"].update(tp_c_l)
+        metrics_l["fn_c"].update(fn_c_l)
+
+        gt_count, pred_cnt = gt_data[k]["num"], pred_data[k]["num"]
+
+        if gt_count != 0:
+            s_nae = abs(gt_count - pred_cnt) / gt_count
+            cnt_errors["nae"].update(s_nae)
+
+    ap_s = metrics_s["tp"].sum / (metrics_s["tp"].sum + metrics_s["fp"].sum + 1e-20)
+    ar_s = metrics_s["tp"].sum / (metrics_s["tp"].sum + metrics_s["fn"].sum + 1e-20)
+    if (ap_s + ar_s) <= 0:
+        return 0, 0, 0, 0, 0, 0
+    f1m_s = 2 * ap_s * ar_s / (ap_s + ar_s)
+
+    ap_l = metrics_l["tp"].sum / (metrics_l["tp"].sum + metrics_l["fp"].sum + 1e-20)
+    ar_l = metrics_l["tp"].sum / (metrics_l["tp"].sum + metrics_l["fn"].sum + 1e-20)
+    f1m_l = 2 * ap_l * ar_l / (ap_l + ar_l)
+
+
+    return ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l
+
+
 def Localization(floc_path, floc_new, gt_location_file, carpk):
     file_order(floc_path, floc_new)
     ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l, mae, mse = location_main(
         floc_new, gt_location_file, carpk
     )
     return ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l, mae, mse
+
+
+def Localization_TEMP(floc_path, floc_new, gt_location_file):
+    file_order(floc_path, floc_new)
+    ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l = location_main_TEMP(
+        floc_new, gt_location_file
+    )
+    return ap_s, ar_s, f1m_s, ap_l, ar_l, f1m_l
+
+
+def performances(gt_cnts, pred_cnts):
+    val_mae = np.mean(np.abs(pred_cnts - gt_cnts))
+    val_rmse = np.sqrt(np.mean((pred_cnts - gt_cnts) ** 2))
+    return val_mae, val_rmse
+
+
+def merge_together(save_dir):
+    npz_file_list = glob.glob(os.path.join(save_dir, "*.npz"))
+    filenames = []
+    gt_cnts = []
+    pred_cnts = []
+    for npz_file in npz_file_list:
+        npz = np.load(npz_file)
+        filenames.append(str(npz["filename"]))
+        gt_cnts.append(npz["gt_cnt"])
+        pred_cnts.append(npz["pred_cnt"])
+    gt_cnts = np.concatenate(np.asarray(gt_cnts), axis=0)
+    pred_cnts = np.concatenate(np.asarray(pred_cnts), axis=0)
+    return gt_cnts, pred_cnts
+
+
+def dump(save_dir, outputs):
+    filenames = outputs["filename"]
+    batch_size = len(filenames)
+    density = outputs["density"]  # b x 1 x h x w
+    density_pred = outputs["density_pred"]  # b x 1 x h x w
+    gt_cnt = torch.sum(density, dim=(2, 3)).cpu().numpy()  # b x 1
+    pred_cnt = torch.sum(density_pred, dim=(2, 3)).cpu().numpy()  # b x 1
+    for i in range(batch_size):
+        file_dir, filename = os.path.split(filenames[i])
+        filename, _ = os.path.splitext(filename)
+        save_file = os.path.join(save_dir, filename + ".npz")
+        np.savez(
+            save_file, filename=filenames[i], gt_cnt=gt_cnt[i], pred_cnt=pred_cnt[i]
+        )

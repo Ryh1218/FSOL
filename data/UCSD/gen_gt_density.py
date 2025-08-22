@@ -8,6 +8,7 @@ from PIL import Image
 from tqdm import tqdm
 
 
+
 def gen_gaussian2d(shape, sigma=1):
     h, w = [_ // 2 for _ in shape]
     y, x = np.ogrid[-h : h + 1, -w : w + 1]
@@ -76,7 +77,7 @@ def points2density(points, max_scale, max_radius):
     elif num_points == 1:
         radius = max_radius
         for point in points:
-            draw_gaussian(density, point, radius, overlap="max")
+            draw_gaussian(density, point, radius, overlap="add")
     else:
         dis_min = _min_dis_global(points)
         for point in points:
@@ -84,49 +85,66 @@ def points2density(points, max_scale, max_radius):
             dis = _min_dis_local(point, points)
             dis = min(dis, max_scale * dis_min, max_radius)
             radius = max(3, int(dis))
-            draw_gaussian(density, point, radius, overlap="max")
+            draw_gaussian(density, point, radius, overlap="add")
     return density
 
 
 if __name__ == "__main__":
     current_path = os.path.abspath(__file__)
     root = current_path.split('/gen_gt_density.py')[0]
-    
-    
-    anno_files = [os.path.join(root, 'train.json'), os.path.join(root, 'test.json')]
-    root_dirs = [os.path.join(root, 'train_data'), os.path.join(root, 'test_data')]
-    for anno_file, root_dir in zip(anno_files, root_dirs):
-        img_dir = os.path.join(root_dir, "images")
-        gt_dir = os.path.join(root_dir, "gt_density_map")
-        os.makedirs(gt_dir, exist_ok=True)
+    img_folder = os.path.join(root, "vidf")
 
-        # read all data
-        metas = []
+    for root, dirs, files in os.walk(img_folder):
+        for dir in tqdm(dirs):
+            dir_path = os.path.join(root, dir)
+            for file in os.listdir(dir_path):
+                file_path = os.path.join(dir_path, file)
+                if os.path.isfile(file_path):
+                    new_file_path = os.path.join(img_folder, file)
+                    if os.path.exists(new_file_path):
+                        print(f'File {new_file_path} already exists, skipping.')
+                    else:
+                        os.rename(file_path, new_file_path)
+            os.rmdir(dir_path)
+
+
+    current_path = os.path.abspath(__file__)
+    root = current_path.split('/gen_gt_density.py')[0]
+    root_dir = os.path.join(root, "vidf")
+    gt_dir = "gt_density_map/"
+
+    gt_dir = os.path.join(root, gt_dir)
+    os.makedirs(gt_dir, exist_ok=True)
+
+    # read all data
+    metas = []
+    anno_files = ["train.json", "test.json"]
+    for anno_file in anno_files:
         with open(anno_file, "r+") as fr:
             for line in fr:
                 meta = json.loads(line)
                 metas.append(meta)
 
-        # create gt density map
-        for meta in tqdm(metas):
-            filename = meta["filename"]
-            filepath = os.path.join(img_dir, filename)
-            image = cv2.imread(filepath)
-            image_size = image.shape[0:2]  # [h, w]
+    # create gt density map
+    for meta in metas:
+        filename = meta["filename"]
+        filepath = os.path.join(root_dir, filename)
+        image = cv2.imread(filepath)
+        image_size = image.shape[0:2]  # [h, w]
 
-            points = meta["points"]
-            points = np.array(points)
-            cnt_gt = points.shape[0]
+        points = meta["points"]
+        points = np.array(points)
+        cnt_gt = points.shape[0]
 
-            density = points2density(points, max_scale=3.0, max_radius=10.0)
+        density = points2density(points, max_scale=3.0, max_radius=15.0)
 
-            if not cnt_gt == 0:
-                cnt_cur = density.sum()
-                density = density / cnt_cur * cnt_gt
+        if not cnt_gt == 0:
+            cnt_cur = density.sum()
+            density = density / cnt_cur * cnt_gt
 
-            filename_, _ = os.path.splitext(filename)
-            save_path = os.path.join(gt_dir, filename_ + ".npy")
-            np.save(save_path, density)
+        filename_, _ = os.path.splitext(filename)
+        save_path = os.path.join(gt_dir, filename_ + ".npy")
+        np.save(save_path, density)
 
     pool = ["test", "train"]
 
@@ -137,6 +155,7 @@ if __name__ == "__main__":
 
     json_paths.sort()
 
+    print(json_paths)
     for json_path in tqdm(json_paths):
         pool_name = json_path.split("/")[-1].split(".")[0]
         if pool_name =='test':
@@ -148,11 +167,9 @@ if __name__ == "__main__":
             dic = json.loads(line)
             coordinates = np.asarray(dic["points"])
 
-            file_name = dic["filename"].replace(".jpg", "")
+            file_name = dic["filename"].replace(".png", "")
 
-            img_path = os.path.join(
-                root, "{}_data".format(pool_name), "images", file_name + ".jpg"
-            )
+            img_path = os.path.join(root, "vidf", file_name + ".png")
 
             img = Image.open(img_path)
             width = img.size[0]
@@ -166,8 +183,8 @@ if __name__ == "__main__":
             f.write("{} {} ".format(file_name, len(re_coordinates)))
 
             for data in re_coordinates:
-                sigma_s = 4
-                sigma_l = 8
+                sigma_s = 5
+                sigma_l = 10
                 f.write(
                     "{} {} {} {} {} ".format(
                         math.floor(data[0]), math.floor(data[1]), sigma_s, sigma_l, 1

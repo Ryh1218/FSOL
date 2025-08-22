@@ -19,11 +19,8 @@ def gen_gaussian2d(shape, sigma=1):
 def draw_gaussian(density, center, radius, k=1, delte=6, overlap="add"):
     diameter = 2 * radius + 1
     gaussian = gen_gaussian2d((diameter, diameter), sigma=diameter / delte)
-    gaussian = gaussian / gaussian.sum()
+    x, y = center
     height, width = density.shape[0:2]
-    x, y = center.astype(np.int)
-    x = min(x, width - 1)
-    y = min(y, height - 1)
     left, right = min(x, radius), min(width - x, radius + 1)
     top, bottom = min(y, radius), min(height - y, radius + 1)
     if overlap == "max":
@@ -54,79 +51,68 @@ def _min_dis_global(points):
     return dis_min
 
 
-def _min_dis_local(point, points):
-    """
-    point: [x, y]
-    points: m x 2, m x [x, y]
-    """
-    point = point[None, :]  # 2 -> 1 x 2
-    dis = np.sqrt(np.sum((points - point) ** 2, axis=1))  # m x 2 -> m
-    dis = sorted(dis)[1]
-    return dis
-
-
-def points2density(points, max_scale, max_radius):
+def points2density(points, radius_backup=None):
     """
     points: m x 2, m x [x, y]
     """
     num_points = points.shape[0]
     density = np.zeros(image_size, dtype=np.float32)  # [h, w]
     if num_points == 0:
-        return density
+        return np.zeros(image_size, dtype=np.float32)
     elif num_points == 1:
-        radius = max_radius
-        for point in points:
-            draw_gaussian(density, point, radius, overlap="max")
+        radius = radius_backup
     else:
-        dis_min = _min_dis_global(points)
-        for point in points:
-            # calculate the minimum distance of a point between its neighbors
-            dis = _min_dis_local(point, points)
-            dis = min(dis, max_scale * dis_min, max_radius)
-            radius = max(3, int(dis))
-            draw_gaussian(density, point, radius, overlap="max")
+        radius = min(int(_min_dis_global(points)), radius_backup)
+    for point in points:
+        draw_gaussian(density, point, radius, overlap="max")
     return density
 
 
 if __name__ == "__main__":
     current_path = os.path.abspath(__file__)
     root = current_path.split('/gen_gt_density.py')[0]
-    
-    
-    anno_files = [os.path.join(root, 'train.json'), os.path.join(root, 'test.json')]
-    root_dirs = [os.path.join(root, 'train_data'), os.path.join(root, 'test_data')]
-    for anno_file, root_dir in zip(anno_files, root_dirs):
-        img_dir = os.path.join(root_dir, "images")
-        gt_dir = os.path.join(root_dir, "gt_density_map")
-        os.makedirs(gt_dir, exist_ok=True)
+    root_dir = os.path.join(root, "Images")
+    gt_dir = "gt_density_map/"
 
-        # read all data
-        metas = []
+    gt_dir = os.path.join(root, gt_dir)
+    os.makedirs(gt_dir, exist_ok=True)
+
+    # read all data
+    metas = []
+    anno_files = ["train.json", "test.json"]
+    for anno_file in anno_files:
+        anno_file = os.path.join(root, anno_file)
         with open(anno_file, "r+") as fr:
             for line in fr:
                 meta = json.loads(line)
                 metas.append(meta)
 
-        # create gt density map
-        for meta in tqdm(metas):
-            filename = meta["filename"]
-            filepath = os.path.join(img_dir, filename)
-            image = cv2.imread(filepath)
-            image_size = image.shape[0:2]  # [h, w]
+    # create gt density map
+    for meta in tqdm(metas):
+        filename = meta["filename"]
+        filepath = os.path.join(root_dir, filename)
+        image = cv2.imread(filepath)
+        image_size = image.shape[0:2]  # [h, w]
+        boxes = meta["boxes"]
+        cnt_gt = len(boxes)
 
-            points = meta["points"]
-            points = np.array(points)
-            cnt_gt = points.shape[0]
+        points = []
+        for box in boxes:
+            yl, xl, yr, xr = box
+            point = [(xl + xr) // 2, (yl + yr) // 2]
+            points.append(point)
+        points = np.array(points)
+        radius_backup = (xr - xl + yr - yl) // 2
 
-            density = points2density(points, max_scale=3.0, max_radius=10.0)
+        density = points2density(points, radius_backup)
 
-            if not cnt_gt == 0:
-                cnt_cur = density.sum()
-                density = density / cnt_cur * cnt_gt
+        if not cnt_gt == 0:
+            cnt_cur = density.sum()
+            density = density / cnt_cur * cnt_gt
 
-            filename_, _ = os.path.splitext(filename)
-            save_path = os.path.join(gt_dir, filename_ + ".npy")
-            np.save(save_path, density)
+        filename_ = os.path.splitext(filename)[0]
+        save_path = os.path.join(gt_dir, filename_ + ".npy")
+        np.save(save_path, density)
 
     pool = ["test", "train"]
 
@@ -137,6 +123,7 @@ if __name__ == "__main__":
 
     json_paths.sort()
 
+    print(json_paths)
     for json_path in tqdm(json_paths):
         pool_name = json_path.split("/")[-1].split(".")[0]
         if pool_name =='test':
@@ -146,28 +133,30 @@ if __name__ == "__main__":
         json_file = open(json_path, "r", encoding="utf-8")
         for line in json_file.readlines():
             dic = json.loads(line)
-            coordinates = np.asarray(dic["points"])
 
             file_name = dic["filename"].replace(".jpg", "")
 
-            img_path = os.path.join(
-                root, "{}_data".format(pool_name), "images", file_name + ".jpg"
-            )
+            img_path = os.path.join(root, "Images", file_name + ".jpg")
 
             img = Image.open(img_path)
             width = img.size[0]
             height = img.size[1]
 
             re_coordinates = []
-            for cor in coordinates:
-                cor[0] = int(cor[0] / width * 512)
-                cor[1] = int(cor[1] / height * 512)
-                re_coordinates.append([cor[0], cor[1]])
+            boxes = np.asarray(dic["boxes"])
+            for box in boxes:
+                yl, xl, yr, xr = box
+                point = [(xl + xr) // 2, (yl + yr) // 2]
+
+                cor0 = int(point[0] / width * 512)
+                cor1 = int(point[1] / height * 512)
+                re_coordinates.append([cor0, cor1])
+
             f.write("{} {} ".format(file_name, len(re_coordinates)))
 
             for data in re_coordinates:
-                sigma_s = 4
-                sigma_l = 8
+                sigma_s = 5
+                sigma_l = 10
                 f.write(
                     "{} {} {} {} {} ".format(
                         math.floor(data[0]), math.floor(data[1]), sigma_s, sigma_l, 1
